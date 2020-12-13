@@ -1,0 +1,10 @@
+README.txt
+setup.cfg
+setup.py
+apicount/__init__.py
+apicount/__main__.py
+apicount/apicount.py
+apicount.egg-info/PKG-INFO
+apicount.egg-info/SOURCES.txt
+apicount.egg-info/dependency_links.txt
+apicount.egg-info/top_level.txt
