@@ -110,8 +110,11 @@ class funcnode:
         self.showall = False
         self.destndir = os.path.abspath(os.curdir)
         self.filename = ""
+        self.ignorefiles = ""
+        self.ignoredirs = ""
         self.showdirtree = False
-        self.lineCount = 0
+        self.lines = 0
+        self.funcs = 0
         self.totalCommentLineCount = 0
         self.parseCmdLineOptions()
 
@@ -131,6 +134,7 @@ class funcnode:
 
         if self.showdirtree is True:
             self.showtreedir()
+            self.showtreedircount()
             return
 
         #for funcname in self.funcnodes.keys():
@@ -158,9 +162,6 @@ class funcnode:
         if self.showdirtree is False:
             return
         print("="*80);
-
-        print("\n%s > %s \n" %("="*4,os.getcwd()))
-        print("="*80);
         print("%-50s : %10s %10s" %("        FILE", "#LOC", "#FUNC"))
         print("="*80);
         for direntry in self.dirtree.keys():
@@ -181,15 +182,15 @@ class funcnode:
                 print("%-50s : %10d %10d" %("   "+funcname,
                     self.apifuncs[count[0]]["loc"]["line"],count[1]))
         print("="*80);
+        print("%-50s : %10d %10d" %("   "+
+                    (os.path.basename(re.sub(r"\./","",os.getcwd()))),
+                    self.lines, self.funcs))
+        print("="*80);
 
     def showtreedir(self):
-        if self.showdirtree is False:
+        if (self.showdirtree is False or
+            self.showall is False):
             return
-
-        self.showtreedircount()
-
-        if not self.showall:
-            quit()
 
         for direntry in self.dirtree.keys():
             spaces = direntry.count(os.sep)
@@ -203,7 +204,7 @@ class funcnode:
                     print("\n%-50s : LOC# %d  FUNC# %d" %(
                             funcname,self.apifuncs[fname]["loc"]["line"],
                             self.apifuncs[fname]["count"]))
-                    print("."*60)
+                    print("."*80)
                     for fn in sorted(self.apifuncs[fname]["funcs"].keys()):
                         print(' '*4,"%s (%s)" %(fn, self.apifuncs[fname]["funcs"][fn]))
 
@@ -224,21 +225,31 @@ class funcnode:
                     fileCommentLineCount += 1
 
             codelines = fileLineCount - (fileBlankLineCount + fileCommentLineCount)
-            self.lineCount += codelines
+            self.lines += codelines
 
             self.apifuncs[src]["loc"]={}
             self.apifuncs[src]["loc"]["line"]=codelines
             self.apifuncs[src]["loc"]["comment"]=fileCommentLineCount
 
     def apiparse(self, dirnode):
+
+            ignorefilelist = [re.sub(r"\./","",os.path.basename(l)).strip() for l in self.ignorefiles.split(',')]
+            ignoredirlist = [re.sub(r"\./","",os.path.basename(l)).strip() for l in self.ignoredirs.split(',')]
+
             for parent, dirs, files in os.walk(dirnode): 
+                #print(parent, dirs, files)
+                if (ignoredirlist and
+                    re.sub(r"\./","",os.path.basename(parent)) in ignoredirlist):
+                    continue
                 if (".git" not in parent and
                     ".ACME" not in parent and
                     parent not in self.dirtree.keys()):
-                    #print(parent, dirs, files)
                     self.dirnode = parent
                     self.dirtree[parent] = list()
                 for fname in files:
+                    if (ignorefilelist and
+                        re.sub(r"\./","",os.path.basename(fname)) in ignorefilelist):
+                        continue
                     filename = os.path.join(parent, fname)
                     if os.path.isfile(filename):
                         index=[it.start() for it in re.finditer('[.]',filename)]
@@ -275,6 +286,7 @@ class funcnode:
         if (fn not in self.apifuncs[fname]["funcs"].keys()):
             self.apifuncs[fname]["funcs"][fn]=signature
             self.apifuncs[fname]["count"] += 1
+            self.funcs += 1
             #print(self.apifuncs[fname]["funcs"])
                 
     def apiadd(self, src):
@@ -320,6 +332,13 @@ class funcnode:
         parser.add_option("-t", "--tree", action="store_true",
                             dest="showdirtree",default=False,
                             help="Show All Directory Sources")
+        parser.add_option("-i", "--ignorefiles", action="store", type="string",
+                           dest="ignorefiles",default="",
+                           help="Files to ignore")
+        parser.add_option("-n", "--ignoredirs", action="store", type="string",
+                           dest="ignoredirs",default="",
+                           help="Dirs to ignore")
+
         (options, args) = parser.parse_args()
 
         #print (options)
@@ -335,4 +354,14 @@ class funcnode:
 
         if (options.showdirtree is True):
             self.showdirtree = True
+
+        if (options.ignorefiles):
+            self.ignorefiles = options.ignorefiles
+
+        if (options.ignoredirs):
+            self.ignoredirs = options.ignoredirs
+
+
+
+        
 
