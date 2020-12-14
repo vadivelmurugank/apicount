@@ -206,7 +206,7 @@ class funcnode:
                             self.apifuncs[fname]["count"]))
                     print("."*80)
                     for fn in sorted(self.apifuncs[fname]["funcs"].keys()):
-                        print(' '*4,"%s (%s)" %(fn, self.apifuncs[fname]["funcs"][fn]))
+                        print("    %s (%s)" %(fn, self.apifuncs[fname]["funcs"][fn]))
 
     def linecount(self, src):
 
@@ -244,20 +244,22 @@ class funcnode:
                 if (".git" not in parent and
                     ".ACME" not in parent and
                     parent not in self.dirtree.keys()):
+                    print("===> Processing %s\r" %(parent))
                     self.dirnode = parent
                     self.dirtree[parent] = list()
-                for fname in files:
-                    if (ignorefilelist and
-                        re.sub(r"\./","",os.path.basename(fname)) in ignorefilelist):
-                        continue
-                    filename = os.path.join(parent, fname)
-                    if os.path.isfile(filename):
-                        index=[it.start() for it in re.finditer('[.]',filename)]
-                        extn = filename[index[-1] + 1:]
-                        if extn in CFileXtens.keys():
-                            self.filenode = filename
-                            self.dirtree[parent].append(filename)
-                            self.apiadd(filename)
+                    for fname in files:
+                        if (ignorefilelist and
+                            re.sub(r"\./","",os.path.basename(fname)) in ignorefilelist):
+                            continue
+                        filename = os.path.join(parent, fname)
+                        if os.path.isfile(filename):
+                            index=[it.start() for it in re.finditer('[.]',filename)]
+                            extn = filename[index[-1] + 1:]
+                            if extn in CFileXtens.keys():
+                                print("\t--  %s\r" %(filename), end='', flush=True)
+                                self.filenode = filename
+                                self.dirtree[parent].append(filename)
+                                self.apiadd(filename)
                   
     def apinode(self, fnstr):
         fn = fnstr[0].strip(' \t\n\r')
